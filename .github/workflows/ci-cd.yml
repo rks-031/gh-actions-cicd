@@ -7,6 +7,10 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Debug GCP_SA_KEY
+        run: echo '${{ secrets.GCP_SA_KEY }}' | jq .
+      - name: Debug GCP_ID
+        run: echo '${{ secrets.GCP_PROJECT_ID }}'
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -16,7 +20,7 @@ jobs:
           node-version: 18
 
       - name: Install Dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run Tests
         run: npm test
@@ -27,17 +31,17 @@ jobs:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - name: Configure Docker Authentication
-        run: gcloud auth configure-docker --quiet
+        run: gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
 
       - name: Build and Push Docker Image
         run: |
-          docker build -t us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-app/cloud-run-app:${{ github.sha }} .
-          docker push us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-app/cloud-run-app:${{ github.sha }}
+          docker build -t us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-app:${{ github.sha }} .
+          docker push us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-app:${{ github.sha }}
 
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy cloud-run-app \
-            --image us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-app/cloud-run-app:${{ github.sha }} \
+            --image us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-app:${{ github.sha }} \
             --platform managed \
             --region us-central1 \
             --allow-unauthenticated
